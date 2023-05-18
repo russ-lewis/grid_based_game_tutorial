@@ -65,6 +65,19 @@ class GridSystem {
     }
 
 
+    // draw a "Pac-Man".  This is partly to get experience with arcs, but
+    // mostly so I can see what happens when the drawing is off the edge
+    // of the board
+
+    this.outlineContext.fillStyle = "#FFFF00";
+
+    this.outlineContext.beginPath();
+    this.outlineContext.arc   (10,75, 50, Math.PI/6, Math.PI*(11/6));
+    this.outlineContext.lineTo(10,75);
+    this.outlineContext.closePath();
+    this.outlineContext.fill();
+
+
     // text in the UI
     this.uiContext.font      = "20px Courier";
     this.uiContext.fillStyle = "white"
