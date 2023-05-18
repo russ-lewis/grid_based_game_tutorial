@@ -5,12 +5,12 @@ class GridSystem {
     this.outline_width  = 320;
     this.outline_height = 480;
 
-    this.     uiContext = this.#createDrawContext(420,580, "#111");
-    this.outlineContext = this.#createDrawContext(320,480, "#444");
-    this.    topContext = this.#createDrawContext(320,480, "#111", true);
-
     this.cellSize = 30;
     this.padding  = 4;
+
+    this.     uiContext = this.#createDrawContext(420,580, "#111");
+    this.outlineContext = this.#createDrawContext(320,480, "#444");
+    this. playerContext = this.#createDrawContext(320,480, "#111", true);
   }
 
   #createDrawContext(w, h, color="#111", isTransparent=false) {
@@ -30,10 +30,7 @@ class GridSystem {
     return canvas.getContext("2d");
   }
 
-  render(player_x, player_y) {
-//    assert(0 <= player_x <= this.matrix   .length);
-//    assert(0 <= player_y <= this.matrix[0].length);
-
+  render_map() {
     const area_width  = this.outline_width;
     const area_height = this.outline_height;
 
@@ -49,9 +46,7 @@ class GridSystem {
     for (var col=0; col < this.matrix[0].length; col++)
     {
       var fill_color;
-      if (col == player_x && row == player_y)
-        fill_color = "#00FF00";
-      else if (this.matrix[row][col] > 0)
+      if (this.matrix[row][col] > 0)
         fill_color = "#FF0000";
       else
         fill_color = "#0000FF";
@@ -69,6 +64,30 @@ class GridSystem {
     this.uiContext.fillStyle = "white"
     this.uiContext.fillText("Put your title here", 20,30);
   }
+
+  render_player(player_x, player_y) {
+//    assert(0.5 <= player_x <= this.width -0.5)
+//    assert(0.5 <= player_y <= this.height-0.5)
+
+    const area_width  = this.outline_width;
+    const area_height = this.outline_height;
+
+    const map_width  = this.matrix   .length * (this.cellSize+this.padding) - this.padding/2;
+    const map_height = this.matrix[0].length * (this.cellSize+this.padding) - this.padding/2;
+
+//    assert(area_width  >= map_width);
+//    assert(area_height >= map_height);
+    const offset_x = (area_width  - map_width )/2;
+    const offset_y = (area_height - map_height)/2;
+
+    this.playerContext.clearRect(0,0, this.outline_width, this.outline_height);
+
+    const x = player_x * (this.cellSize+this.padding) + offset_x;
+    const y = player_y * (this.cellSize+this.padding) + offset_y;
+
+    this.playerContext.fillStyle = "#00FF00";
+    this.playerContext.fillRect(x,y, this.cellSize,this.cellSize);
+  }
 }
 
 const example_starting_matrix = [
@@ -81,13 +100,53 @@ const example_starting_matrix = [
   [1, 1, 1, 1, 1, 1, 1]
 ];
 
-var player_x = 2;
-var player_y = 3;
-
 
 
 const gridSystem = new GridSystem(example_starting_matrix);
-gridSystem.render(player_x, player_y);
+gridSystem.render_map();
+
+
+
+var player_x = 2;
+var player_y = 3;
+gridSystem.render_player(player_x, player_y);
+
+
+
+var dx = 0;
+var dy = 0;
+
+const TWEEN_LEN  = 20;
+var   tweenCount = 0;
+
+var queued_key = 0;
+
+function updatePlayer()
+{
+//  assert(dx != 0 || dy != 0);
+//  assert(0 <= tweenCount < TWEEN_LEN);
+
+  tweenCount++;
+  if (tweenCount == TWEEN_LEN)
+  {
+    player_x += dx;
+    player_y += dy;
+    dx = dy = tweenCount = 0;
+
+    if (queued_key != 0)
+    {
+      const toSend = queued_key;
+      queued_key = 0;
+      keyDown_handler({key:toSend});
+    }
+  }
+  else
+    requestAnimationFrame(updatePlayer);
+
+  var x = player_x + dx * (tweenCount/TWEEN_LEN);
+  var y = player_y + dy * (tweenCount/TWEEN_LEN);
+  gridSystem.render_player(x,y);
+}
 
 
 
@@ -110,8 +169,12 @@ gridSystem.render(player_x, player_y);
 // FWIW, you can actually declare groups of pseudo-parameters that way; for
 // instance, the syntax {key,keyCode} is perfectly valid.
 
-document.addEventListener("keydown", function({key}) {
-  var dx=0, dy=0;
+function keyDown_handler({key}) {
+  if (dx != 0 || dy != 0)
+  {
+    queued_key = key;
+    return;
+  }
 
   if (key == "ArrowLeft")
     dx = -1;
@@ -126,13 +189,15 @@ document.addEventListener("keydown", function({key}) {
   {
     if (gridSystem.matrix[player_y+dy][player_x+dx] > 0)
     {
-      console.log("MOVEMENT BLOCKED");
+      dx = dy = 0;
       return;
     }
 
-    player_x += dx;
-    player_y += dy;
-    gridSystem.render(player_x, player_y);
+    requestAnimationFrame(updatePlayer);
   }
-});
+}
+
+
+
+document.addEventListener("keydown", keyDown_handler);
 
