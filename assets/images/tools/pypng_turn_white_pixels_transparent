@@ -1,0 +1,77 @@
+#! /usr/bin/python3
+
+import png
+
+
+
+# this reads the entire image file, so that we can get its basic properties.
+# use then to sanity-check our assumptions
+
+(wid,hei, raw_rows, info) = png.Reader("ugly_house.png").asRGBA()
+assert info["bitdepth"] <= 8
+
+
+
+# 'raw_rows' is a generator.  Because I used asRGBA(), each pixel is
+# represented by four integers, no matter what the input format was.
+#
+# The data that is returned by the generator is a set of bytearray objects; we
+# use the list() constructor to convert each row.  But still, each row is
+# represented as a flat array of integers - the 4 values for each pixel are
+# *NOT* separated.
+int_array_rows = [list(row) for row in raw_rows]
+
+
+
+# this function will do the conversion of a single pixel.  If the current pixel
+# is white, we will replace the pixel with a transparent one; otherwise, we
+# will pass it through, unchanged.  Note that we entirely ignore the alpha
+# channel in the input, except that we pass it through, unmodified, on
+# non-white pixels
+
+def convert_one_pixel(data):
+    assert  len(data) == 4
+    assert type(data) == list
+
+    if data[:3] == [255,255,255]:
+        return [0,0,0,0]
+    else:
+        return data
+
+# this converts a single row, from the joined-array format to a nested array
+
+def convert_one_row(row):
+    assert len(row) % 4 == 0
+    retval = []
+    while len(row) > 0:
+        retval.append(convert_one_pixel(row[:4]))
+        row = row[4:]
+    return retval
+
+# this converts the entire picture, from the joined-array format to a set of
+# nested arrays
+
+pix_converted = [convert_one_row(row) for row in int_array_rows]
+
+# sanity check that our data is the right size
+assert len(pix_converted) == hei
+for row in pix_converted:
+    assert len(row) == wid
+    for pixel in row:
+        assert  len(pixel) == 4
+        assert type(pixel) == list
+
+
+
+# to make the PNG library happy, we have to collapse each row back into an
+# integer array
+converted_int_array_rows = [sum(row, []) for row in pix_converted]
+
+
+
+# write out the modified pixels to a new file
+f = open("ugly_house-transparent.png", "wb")
+w = png.Writer(wid,hei, greyscale=False, alpha=True)
+w.write(f, converted_int_array_rows)
+f.close()
+
