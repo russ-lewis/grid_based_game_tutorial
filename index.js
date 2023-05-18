@@ -30,7 +30,10 @@ class GridSystem {
     return canvas.getContext("2d");
   }
 
-  render() {
+  render(player_x, player_y) {
+//    assert(0 <= player_x <= this.matrix   .length);
+//    assert(0 <= player_y <= this.matrix[0].length);
+
     const area_width  = this.outline_width;
     const area_height = this.outline_height;
 
@@ -45,7 +48,14 @@ class GridSystem {
     for (var row=0; row < this.matrix   .length; row++)
     for (var col=0; col < this.matrix[0].length; col++)
     {
-      const fill_color = this.matrix[row][col] > 0 ? "#FF0000" : "#0000FF";
+      var fill_color;
+      if (col == player_x && row == player_y)
+        fill_color = "#00FF00";
+      else if (this.matrix[row][col] > 0)
+        fill_color = "#FF0000";
+      else
+        fill_color = "#0000FF";
+
       const x = col * (this.cellSize + this.padding) + offset_x;
       const y = row * (this.cellSize + this.padding) + offset_y;
 
@@ -71,6 +81,58 @@ const example_starting_matrix = [
   [1, 1, 1, 1, 1, 1, 1]
 ];
 
+var player_x = 2;
+var player_y = 3;
+
+
+
 const gridSystem = new GridSystem(example_starting_matrix);
-gridSystem.render();
+gridSystem.render(player_x, player_y);
+
+
+
+// RUSS NOTES:
+//
+// This is very strange JavaScript magic, but I'm using it here because the
+// tutorial did so (although it looked for {keyCode} instead of {key}.  While
+// I'm not convinced that this language feature is any code, I know that I need
+// to learn about it, if I'm going to use other people's code.
+//
+// The issue here is the curly-braces around the function parameter: this code
+// automatically extracts the matching field name from the object which is
+// passed.  That is, the "keydown" Event Listener actually gets an event
+// object, which has a bunch of fields.  If you used a parameter name 'event',
+// then you could access the key using 'event.key'.  But if you put curly
+// braces around the parameter, then the field 'event.key' is auto-extracted as
+// part of the parameter passing, and thus, you see *ONLY* the key field, not
+// the entire object.
+//
+// FWIW, you can actually declare groups of pseudo-parameters that way; for
+// instance, the syntax {key,keyCode} is perfectly valid.
+
+document.addEventListener("keydown", function({key}) {
+  var dx=0, dy=0;
+
+  if (key == "ArrowLeft")
+    dx = -1;
+  if (key == "ArrowRight")
+    dx = 1;
+  if (key == "ArrowUp")
+    dy = -1;
+  if (key == "ArrowDown")
+    dy = 1;
+
+  if (dx != 0 || dy != 0)
+  {
+    if (gridSystem.matrix[player_y+dy][player_x+dx] > 0)
+    {
+      console.log("MOVEMENT BLOCKED");
+      return;
+    }
+
+    player_x += dx;
+    player_y += dy;
+    gridSystem.render(player_x, player_y);
+  }
+});
 
