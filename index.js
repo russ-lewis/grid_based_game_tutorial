@@ -61,7 +61,7 @@ class GridSystem {
       this.outlineContext.fillRect(x,y, this.cellSize,this.cellSize);
 
       if (this.matrix[row][col] == 2)
-        this.playerContext.drawImage(this.ugly_house, x,y);
+        this.outlineContext.drawImage(this.ugly_house, x,y);
     }
 
 
@@ -205,7 +205,22 @@ function keyDown_handler({key}) {
   }
 }
 
-
-
 document.addEventListener("keydown", keyDown_handler);
+
+
+
+// just for fun, move the whole map around, to see how a scrolling map might
+// work.
+var map_pos = 331;
+window.addEventListener("load", function() {
+  requestAnimationFrame(moveMap);
+});
+
+function moveMap() {
+  map_pos++;
+//  console.log(gridSystem.outlineContext.canvas);
+  gridSystem.outlineContext.canvas.style.marginLeft = map_pos+"px";
+  gridSystem. playerContext.canvas.style.marginLeft = map_pos+"px";
+  requestAnimationFrame(moveMap);
+}
 
