@@ -11,6 +11,9 @@ class GridSystem {
     this.     uiContext = this.#createDrawContext(420,580, "#111");
     this.outlineContext = this.#createDrawContext(320,480, "#444");
     this. playerContext = this.#createDrawContext(320,480, "#111", true);
+
+    this.ugly_house = new Image();
+    this.ugly_house.src = "assets/images/ugly_house.png";    
   }
 
   #createDrawContext(w, h, color="#111", isTransparent=false) {
@@ -56,6 +59,9 @@ class GridSystem {
 
       this.outlineContext.fillStyle = fill_color;
       this.outlineContext.fillRect(x,y, this.cellSize,this.cellSize);
+
+      if (this.matrix[row][col] == 2)
+        this.playerContext.drawImage(this.ugly_house, x,y);
     }
 
 
@@ -91,7 +97,7 @@ class GridSystem {
 }
 
 const example_starting_matrix = [
-  [1, 1, 1, 1, 1, 1, 1],
+  [1, 2, 1, 1, 1, 1, 1],
   [1, 0, 0, 0, 0, 0, 1],
   [1, 0, 0, 0, 0, 0, 1],
   [1, 0, 0, 0, 0, 0, 1],
@@ -103,7 +109,9 @@ const example_starting_matrix = [
 
 
 const gridSystem = new GridSystem(example_starting_matrix);
-gridSystem.render_map();
+
+// don't attempt to draw the map until the sprites have loaded.
+window.addEventListener("load", function() { gridSystem.render_map(); });
 
 
 

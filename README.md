@@ -7,3 +7,8 @@ the following tutorial:
     https://www.youtube.com/watch?v=3t_SV3WD_98
     https://github.com/fahadhaidari/game-code-bites
 
+Wow, that one was short.  Added some animation ideas from the Tweener example,
+on the same channel.
+
+Now playing with sprites from the Sprite Sheet tutorial.
+
