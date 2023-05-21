@@ -9,6 +9,9 @@ class Map {
     this.scroll_x = scroll_x;
     this.scroll_y = scroll_y;
 
+    this.vel_x = -0.05;
+    this.vel_y =  0;
+
 
     // there are two canvases:
     //   bg
@@ -26,20 +29,13 @@ class Map {
 
     this.bg_ctx = bg.getContext("2d");
     this.fg_ctx = fg.getContext("2d");
-console.log(this.bg_ctx.getTransform());
 
 
     /* the script in index.html manages the size of the main canvas; it will
      * auto-scale the foreground and background canvases at the same time.
      * So we only need to monitor one of them.
-     *
-     * RUSS ASKS (20 May 2023):
-     * Why is the 'this' pointer not part of the scope of the function, which
-     * is saved?  If I use 'this' directly, instead of 'saved_this', I get the
-     * ResizeObserver object!  Ick!
      */
-    const save_this = this;
-    new ResizeObserver(function(event) {console.log(save_this); save_this.drawSizeRefresh(event);}).observe(fg);
+    new ResizeObserver(this.drawSizeRefresh.bind(this)).observe(fg);
 
 
     /* we do *NOT* explicitly ask for a redraw during init; instead, we will
@@ -48,75 +44,144 @@ console.log(this.bg_ctx.getTransform());
      */
 
 
-    const this_save = this;
-//    requestAnimationFrame(function () {this_save.shift();});
+    setInterval(this.shift.bind(this), 33);
   }
 
 
   shift() {
-//console.log(this.bg_ctx.canvas);
-    this.bg_ctx.canvas.style.left = parseInt(this.bg_ctx.canvas.style.left)-5;
-
-    const this_save = this;
-    requestAnimationFrame(function () {this_save.shift();});
+    this.scroll_x += this.vel_x;
+    this.scroll_y += this.vel_y;
+    this.drawSizeRefresh();
   }
 
 
   // call this when you you resize the drawing area (or, in the constructor).
   // We calculate how large the "visible" size is.
-  drawSizeRefresh(event) {
-console.log("canvas resize");
-console.log(event);
-console.log(this.bg_ctx.getTransform());
-    const {width,height} = event[0].contentRect;
+  drawSizeRefresh() {
+    const wid = parseInt(this.bg_ctx.canvas.style.width);
+    const hei = parseInt(this.bg_ctx.canvas.style.height);
 
-    this.wid_cells = 20;
-    this.hei_cells = 20;
-    console.log("TODO: drawSizeRefresh(): calculate the values from input data, intsead of hard-coding");
+    const wid_cells = wid/CELL_SIZE;
+    const hei_cells = hei/CELL_SIZE;
 
-    this.lft_indx = this.scroll_x - Math.floor(this.wid_cells/2);
-    this.top_indx = this.scroll_y - Math.floor(this.hei_cells/2);
-//    assert(this.lft_indx >= 0);
-//    assert(this.top_indx >= 0);
-//    assert(this.lft_indx + wid_cells < this.grid   .length);
-//    assert(this.top_indx + hei_cells < this.grid[0].length);
+    const lft_raw = this.scroll_x - wid_cells/2;
+    const rgt_raw = this.scroll_x + wid_cells/2;
+    const top_raw = this.scroll_y - hei_cells/2;
+    const bot_raw = this.scroll_y + hei_cells/2;
 
-    const this_save = this;
-    requestAnimationFrame(function() {this_save.draw();});
-  }
+    var lft = Math.floor(lft_raw);
+    var rgt = Math. ceil(rgt_raw);
+    var top = Math.floor(top_raw);
+    var bot = Math. ceil(bot_raw);
 
 
-  draw() {
-console.log("draw():", this);
-console.log(this.bg_ctx);
-console.log(this.bg_ctx.canvas);
+// TEMPORARY: put upper and lower bounds on the map!
+const MIN = 0.01;
+const MAX = 0.25;
+if (lft < 0)
+{
+    lft = 0;
 
-    this.bg_ctx.clearRect(0,0, this.bg_ctx.canvas.width, this.bg_ctx.canvas.height);
+    this.vel_x =  MIN + Math.random()*(MAX-MIN);
+    this.vel_y = -MAX + Math.random()*2*MAX;
+}
+if (top < 0)
+{
+    top = 0;
 
-    console.log("TODO: implement Map.draw()");
+    this.vel_y =  MIN + Math.random()*(MAX-MIN);
+    this.vel_x = -MAX + Math.random()*2*MAX;
+}
+if (rgt > 50)
+{
+    rgt = 50;
 
-    for (var i=0; i<this.wid_cells; i++)
-    for (var j=0; j<this.hei_cells; j++)
-    {
-      const x = this.lft_indx+i;
-      const y = this.top_indx+j;
+    this.vel_x = -MIN - Math.random()*(MAX-MIN);
+    this.vel_y = -MAX + Math.random()*2*MAX;
+}
+if (bot > 50)
+{
+    bot = 50;
 
-      this.bg_ctx.fillStyle = "green";
-      this.bg_ctx.fillRect(i*CELL_SIZE + CELL_BORDER,
-                           j*CELL_SIZE + CELL_BORDER,
-                           CELL_SIZE-2*CELL_BORDER, CELL_SIZE-2*CELL_BORDER);
-    }
-
-    this.completeRedraw = false;
-  }
+    this.vel_y = -MIN - Math.random()*(MAX-MIN);
+    this.vel_x = -MAX + Math.random()*2*MAX;
 }
 
 
+    /* the bounds of our draw loop (the "draw indices") need to use the rounded
+     * values.  The transform matrix will use the floating-point original
+     * values, so that we can have smooth scrolling.
+     */
+    this.drawIndices = {"left":lft, "top":top, "right":rgt, "bottom":bot};
 
-//  window.addEventListener("load", function() {
-//    console.log("Foo");
-//    draw_here = document.getElementById("draw_here");
-//    const map = new Map([], draw_here, 0,0);
-//  });
+
+    /* set the transform based on the raw values (but scaled up because the
+     * cell sizes are a lot larger than single pixels).  Note that we apply
+     * the - transform as well, because we want the (virtual) origin of the
+     * drawing to move up and left as we think that we are drawing deeper to
+     * the right and bottom.
+     */
+    this.bg_ctx.reset();
+    this.fg_ctx.reset();
+
+    const translate_x = -lft_raw * CELL_SIZE;
+    const translate_y = -top_raw * CELL_SIZE;
+
+    this.bg_ctx.translate(translate_x, translate_y);
+    this.fg_ctx.translate(translate_x, translate_y);
+
+
+    requestAnimationFrame(this.draw_bg.bind(this));
+    requestAnimationFrame(this.draw_fg.bind(this));
+  }
+
+
+  draw_bg() {
+    for (var x=this.drawIndices.left; x<=this.drawIndices.right ; x++)
+    for (var y=this.drawIndices.top ; y<=this.drawIndices.bottom; y++)
+    {
+      if (x%5 == 0 && y%5 == 0)
+          continue;
+      this.bg_ctx.fillStyle = "green";
+      this.bg_ctx.fillRect(x*CELL_SIZE + CELL_BORDER,
+                           y*CELL_SIZE + CELL_BORDER,
+                           CELL_SIZE-2*CELL_BORDER, CELL_SIZE-2*CELL_BORDER);
+    }
+
+
+    /* top and bottom edges */
+    for (var x=this.drawIndices.left; x<=this.drawIndices.right ; x++)
+    {
+      this.bg_ctx.fillStyle = "red";
+
+      y = 0;
+      this.bg_ctx.fillRect(x*CELL_SIZE + CELL_BORDER,
+                           y*CELL_SIZE + CELL_BORDER,
+                           CELL_SIZE-2*CELL_BORDER, CELL_SIZE-2*CELL_BORDER);
+      y = 50;
+      this.bg_ctx.fillRect(x*CELL_SIZE + CELL_BORDER,
+                           y*CELL_SIZE + CELL_BORDER,
+                           CELL_SIZE-2*CELL_BORDER, CELL_SIZE-2*CELL_BORDER);
+    }
+    /* left and right edges */
+    for (var y=this.drawIndices.top; y<=this.drawIndices.bottom; y++)
+    {
+      this.bg_ctx.fillStyle = "red";
+
+      x = 0;
+      this.bg_ctx.fillRect(x*CELL_SIZE + CELL_BORDER,
+                           y*CELL_SIZE + CELL_BORDER,
+                           CELL_SIZE-2*CELL_BORDER, CELL_SIZE-2*CELL_BORDER);
+      x = 50;
+      this.bg_ctx.fillRect(x*CELL_SIZE + CELL_BORDER,
+                           y*CELL_SIZE + CELL_BORDER,
+                           CELL_SIZE-2*CELL_BORDER, CELL_SIZE-2*CELL_BORDER);
+    }
+  }
+
+
+  draw_fg() {
+  }
+}
 
 
