@@ -1,9 +1,62 @@
 <html>
+  <head>
+    <link rel="stylesheet" href="style.css">
+  </head>
 
-<body>
+<body bgcolor="#444444">
 
-<script src="index.js"></script>
+<!-- the positions and sizes are correct for a 640x480 screen.  We will
+  -- auto-resize when we know the size of our container (or that size
+  -- changes)
+  -->
+
+<canvas id=bg   style="position:absolute;
+                       left:32; top:32; width:344; height:416;
+                       z-index:0;
+                       background:white"></canvas>
+<canvas id=fg   style="position:absolute;
+                       left:32; top:32; width:344; height:416;
+                       z-index:1;
+                       backgroundColor:transparent"></canvas>
+
+<canvas id=menu style="position:absolute;
+                       left:408; top:32; width:150; height:416;
+                       background:white"></canvas>
 
 </body>
 </html>
+
+
+
+<script src="index.js"></script>
+
+<script>
+  const MENU_WIDTH = 150;
+
+  const bg   = document.getElementById("bg");
+  const fg   = document.getElementById("fg");
+  const menu = document.getElementById("menu");
+
+  const map = new Map([], bg,fg, 50,50);
+
+  new ResizeObserver(windowSizeChanged).observe(document.body);
+  function windowSizeChanged(event) {
+console.log("window resize");
+    const {width,height} = event[0].contentRect;
+
+    menu.style.left = width-32-MENU_WIDTH;
+
+    bg      .width  =
+    fg      .width  =
+    bg.style.width  =
+    fg.style.width  = width-32-MENU_WIDTH-32-32;
+
+    bg        .height =
+    fg        .height =
+    menu      .height =
+    bg  .style.height =
+    fg  .style.height =
+    menu.style.height = height-32-32;
+  };
+</script>
 
