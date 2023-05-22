@@ -9,9 +9,6 @@ class Map {
     this.scroll_x = scroll_x;
     this.scroll_y = scroll_y;
 
-    this.vel_x = -0.05;
-    this.vel_y =  0;
-
 
     // there are two canvases:
     //   bg
@@ -37,21 +34,15 @@ class Map {
      */
     new ResizeObserver(this.drawSizeRefresh.bind(this)).observe(fg);
 
-
     /* we do *NOT* explicitly ask for a redraw during init; instead, we will
      * wait for the ResizeObserver to call us (which happens because of init);
      * this function always asks for a redraw
      */
 
 
-    setInterval(this.shift.bind(this), 33);
-  }
-
-
-  shift() {
-    this.scroll_x += this.vel_x;
-    this.scroll_y += this.vel_y;
-    this.drawSizeRefresh();
+    this.keyUp_handler();
+    document.addEventListener("keydown", this.keyDown_handler.bind(this));
+    document.addEventListener("keyup",   this.keyUp_handler  .bind(this));
   }
 
 
@@ -64,6 +55,10 @@ class Map {
     const wid_cells = wid/CELL_SIZE;
     const hei_cells = hei/CELL_SIZE;
 
+    /* before we *use* the scroll state, update it if the window's in motion */
+    this.scroll_x += this.vel.x;
+    this.scroll_y += this.vel.y;
+
     const lft_raw = this.scroll_x - wid_cells/2;
     const rgt_raw = this.scroll_x + wid_cells/2;
     const top_raw = this.scroll_y - hei_cells/2;
@@ -75,44 +70,11 @@ class Map {
     var bot = Math. ceil(bot_raw);
 
 
-// TEMPORARY: put upper and lower bounds on the map!
-const MIN = 0.01;
-const MAX = 0.25;
-if (lft < 0)
-{
-    lft = 0;
-
-    this.vel_x =  MIN + Math.random()*(MAX-MIN);
-    this.vel_y = -MAX + Math.random()*2*MAX;
-}
-if (top < 0)
-{
-    top = 0;
-
-    this.vel_y =  MIN + Math.random()*(MAX-MIN);
-    this.vel_x = -MAX + Math.random()*2*MAX;
-}
-if (rgt > 50)
-{
-    rgt = 50;
-
-    this.vel_x = -MIN - Math.random()*(MAX-MIN);
-    this.vel_y = -MAX + Math.random()*2*MAX;
-}
-if (bot > 50)
-{
-    bot = 50;
-
-    this.vel_y = -MIN - Math.random()*(MAX-MIN);
-    this.vel_x = -MAX + Math.random()*2*MAX;
-}
-
-
     /* the bounds of our draw loop (the "draw indices") need to use the rounded
      * values.  The transform matrix will use the floating-point original
      * values, so that we can have smooth scrolling.
      */
-    this.drawIndices = {"left":lft, "top":top, "right":rgt, "bottom":bot};
+    this.drawIndices = {left:lft, top:top, right:rgt, bottom:bot};
 
 
     /* set the transform based on the raw values (but scaled up because the
@@ -131,8 +93,10 @@ if (bot > 50)
     this.fg_ctx.translate(translate_x, translate_y);
 
 
-    requestAnimationFrame(this.draw_bg.bind(this));
-    requestAnimationFrame(this.draw_fg.bind(this));
+    this.draw_bg();
+    this.draw_fg();
+//    requestAnimationFrame(this.draw_bg.bind(this));
+//    requestAnimationFrame(this.draw_fg.bind(this));
   }
 
 
@@ -181,6 +145,26 @@ if (bot > 50)
 
 
   draw_fg() {
+  }
+
+
+  keyDown_handler({key}) {
+    const SPEED = .25;
+
+    if (key == "ArrowLeft")
+      this.vel = {x:-SPEED, y:0};
+    if (key == "ArrowRight")
+      this.vel = {x: SPEED, y:0};
+    if (key == "ArrowUp")
+      this.vel = {x:0,      y:-SPEED};
+    if (key == "ArrowDown")
+      this.vel = {x:0,      y: SPEED};
+
+    if (this.vel.x != 0 || this.vel.y != 0)
+      requestAnimationFrame(this.drawSizeRefresh.bind(this));
+  }
+  keyUp_handler() {
+    this.vel = {x:0, y:0};
   }
 }
 
