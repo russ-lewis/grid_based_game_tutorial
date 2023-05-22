@@ -16,9 +16,13 @@ class Map {
       for (var j=0; j<SIZE; j++)
         this.grid[i][j] = 0;
     }
-
     this.grid[2][3] = "yellow";
     this.grid[1][5] = "green";
+
+
+    // the user can change this at any time.  It is the color that we will set
+    // the next time that the user clicks anywhere.
+    this.activeColor = "blue";
 
 
     // there are two canvases:
@@ -54,19 +58,18 @@ class Map {
     /* we use the keyboard to scroll around on the map.  keyUp and keyDown
      * events update the 'this.vel' object, which is used below (in drawSizeRefresh())
      * to adjust the scroll position slowly.
+     *
+     * TODO: Why does this appear to require the 'document'?  I can't make this
+     *       work if I add a listener to the foreground context.  Compare to
+     *       click event - I'm confused.
      */
     this.keyUp_handler();
-//    document.addEventListener("keydown", this.keyDown_handler.bind(this));
-//    document.addEventListener("keyup",   this.keyUp_handler  .bind(this));
-    fg.addEventListener("keydown", this.keyDown_handler.bind(this));
-    fg.addEventListener("keyup",   this.keyUp_handler  .bind(this));
-    bg.addEventListener("keydown", this.keyDown_handler.bind(this));
-    bg.addEventListener("keyup",   this.keyUp_handler  .bind(this));
     document.addEventListener("keydown", this.keyDown_handler.bind(this));
     document.addEventListener("keyup",   this.keyUp_handler  .bind(this));
 
 
-    /* mouse clicks in the canvas are  */
+    /* mouse clicks */
+    fg.addEventListener("click", this.click_handler.bind(this));
   }
 
 
@@ -127,7 +130,6 @@ console.log(this.grid.length, this.grid[0].length);
 
 
   draw_bg() {
-console.log(this.drawIndices);
     for (var x=this.drawIndices.left; x<=this.drawIndices.right ; x++)
     for (var y=this.drawIndices.top ; y<=this.drawIndices.bottom; y++)
     {
@@ -196,6 +198,26 @@ console.log(this.drawIndices);
   }
   keyUp_handler() {
     this.vel = {x:0, y:0};
+  }
+
+
+  click_handler({offsetX,offsetY}) {
+    const transform_matrix = this.bg_ctx.getTransform();
+    const translate_X = transform_matrix.m41;
+    const translate_Y = transform_matrix.m42;
+
+    const indx_X = Math.floor((offsetX - translate_X) / CELL_SIZE);
+    const indx_Y = Math.floor((offsetY - translate_Y) / CELL_SIZE);
+
+    if (indx_X < 0 || indx_X >= this.grid   .length ||
+        indx_Y < 0 || indx_Y >= this.grid[0].length)
+    {
+      console.log("Click indices out of range:", indx_X,indx_Y);
+      return;
+    }
+
+    this.grid[indx_X][indx_Y] = this.activeColor;
+    requestAnimationFrame(this.draw_bg.bind(this));
   }
 }
 
