@@ -19,9 +19,14 @@
                        z-index:1;
                        backgroundColor:transparent"></canvas>
 
-<canvas id=menu style="position:absolute;
-                       left:408; top:32; width:150; height:416;
-                       background:white"></canvas>
+<div id=menu style="position:absolute;
+                    left:408; top:32; width:150; height:416;
+                    background:white">
+    <button id=green >green </button>
+    <button id=red   >red   </button>
+    <button id=yellow>yellow</button>
+    <button id=purple>purple</button>
+  </div>
 
 </body>
 </html>
@@ -37,7 +42,7 @@
   const fg   = document.getElementById("fg");
   const menu = document.getElementById("menu");
 
-  const map = new Map([], bg,fg, 15,15);
+  const map = new Map(bg,fg);
 
   new ResizeObserver(windowSizeChanged).observe(document.body);
   function windowSizeChanged(event) {

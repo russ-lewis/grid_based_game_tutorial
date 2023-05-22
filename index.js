@@ -4,10 +4,21 @@ const CELL_BORDER =  2;    // working size is SIZE-2*BORDER
 
 
 class Map {
-  constructor(grid, bg,fg, scroll_x,scroll_y) {
-    this.grid     = grid;
-    this.scroll_x = scroll_x;
-    this.scroll_y = scroll_y;
+  constructor(bg,fg) {
+    const SIZE = 100;
+
+    this.scroll_x = 8;
+    this.scroll_y = 8;
+
+    this.grid = new Array(SIZE);
+    for (var i=0; i<SIZE; i++) {
+      this.grid[i] = new Array(SIZE);
+      for (var j=0; j<SIZE; j++)
+        this.grid[i][j] = 0;
+    }
+
+    this.grid[2][3] = "yellow";
+    this.grid[1][5] = "green";
 
 
     // there are two canvases:
@@ -40,9 +51,22 @@ class Map {
      */
 
 
+    /* we use the keyboard to scroll around on the map.  keyUp and keyDown
+     * events update the 'this.vel' object, which is used below (in drawSizeRefresh())
+     * to adjust the scroll position slowly.
+     */
     this.keyUp_handler();
+//    document.addEventListener("keydown", this.keyDown_handler.bind(this));
+//    document.addEventListener("keyup",   this.keyUp_handler  .bind(this));
+    fg.addEventListener("keydown", this.keyDown_handler.bind(this));
+    fg.addEventListener("keyup",   this.keyUp_handler  .bind(this));
+    bg.addEventListener("keydown", this.keyDown_handler.bind(this));
+    bg.addEventListener("keyup",   this.keyUp_handler  .bind(this));
     document.addEventListener("keydown", this.keyDown_handler.bind(this));
     document.addEventListener("keyup",   this.keyUp_handler  .bind(this));
+
+
+    /* mouse clicks in the canvas are  */
   }
 
 
@@ -64,10 +88,12 @@ class Map {
     const top_raw = this.scroll_y - hei_cells/2;
     const bot_raw = this.scroll_y + hei_cells/2;
 
-    var lft = Math.floor(lft_raw);
-    var rgt = Math. ceil(rgt_raw);
-    var top = Math.floor(top_raw);
-    var bot = Math. ceil(bot_raw);
+    /* round the values to useful array indices.  But also bound them */
+console.log(this.grid.length, this.grid[0].length);
+    var lft = Math.max(Math.floor(lft_raw), 0);
+    var top = Math.max(Math.floor(top_raw), 0);
+    var rgt = Math.min(Math. ceil(rgt_raw), this.grid   .length-1);
+    var bot = Math.min(Math. ceil(bot_raw), this.grid[0].length-1);
 
 
     /* the bounds of our draw loop (the "draw indices") need to use the rounded
@@ -101,42 +127,47 @@ class Map {
 
 
   draw_bg() {
+console.log(this.drawIndices);
     for (var x=this.drawIndices.left; x<=this.drawIndices.right ; x++)
     for (var y=this.drawIndices.top ; y<=this.drawIndices.bottom; y++)
     {
-      if (x%5 == 0 && y%5 == 0)
-          continue;
-      this.bg_ctx.fillStyle = "green";
-      this.bg_ctx.fillRect(x*CELL_SIZE + CELL_BORDER,
-                           y*CELL_SIZE + CELL_BORDER,
-                           CELL_SIZE-2*CELL_BORDER, CELL_SIZE-2*CELL_BORDER);
+      if (this.grid[x][y] == 0) {
+        this.bg_ctx.strokeStyle = "black";
+        this.bg_ctx.beginPath();
+        this.bg_ctx.rect(x*CELL_SIZE + CELL_BORDER, y*CELL_SIZE + CELL_BORDER,
+                         CELL_SIZE-2*CELL_BORDER, CELL_SIZE-2*CELL_BORDER);
+        this.bg_ctx.stroke();
+      }
+      else
+      {
+        this.bg_ctx.fillStyle = this.grid[x][y];
+        this.bg_ctx.fillRect(x*CELL_SIZE + CELL_BORDER, y*CELL_SIZE + CELL_BORDER,
+                             CELL_SIZE-2*CELL_BORDER, CELL_SIZE-2*CELL_BORDER);
+      }
     }
 
 
     /* top and bottom edges */
-    for (var x=this.drawIndices.left; x<=this.drawIndices.right ; x++)
+    this.bg_ctx.fillStyle = "red";
+    for (var x=this.drawIndices.left-1; x<=1+this.drawIndices.right; x++)
     {
-      this.bg_ctx.fillStyle = "red";
-
-      y = 0;
+      y = -1;
       this.bg_ctx.fillRect(x*CELL_SIZE + CELL_BORDER,
                            y*CELL_SIZE + CELL_BORDER,
                            CELL_SIZE-2*CELL_BORDER, CELL_SIZE-2*CELL_BORDER);
-      y = 50;
+      y = this.drawIndices.bottom+1;
       this.bg_ctx.fillRect(x*CELL_SIZE + CELL_BORDER,
                            y*CELL_SIZE + CELL_BORDER,
                            CELL_SIZE-2*CELL_BORDER, CELL_SIZE-2*CELL_BORDER);
     }
     /* left and right edges */
-    for (var y=this.drawIndices.top; y<=this.drawIndices.bottom; y++)
+    for (var y=this.drawIndices.top-1; y<=1+this.drawIndices.bottom; y++)
     {
-      this.bg_ctx.fillStyle = "red";
-
-      x = 0;
+      x = -1;
       this.bg_ctx.fillRect(x*CELL_SIZE + CELL_BORDER,
                            y*CELL_SIZE + CELL_BORDER,
                            CELL_SIZE-2*CELL_BORDER, CELL_SIZE-2*CELL_BORDER);
-      x = 50;
+      x = this.drawIndices.right+1;
       this.bg_ctx.fillRect(x*CELL_SIZE + CELL_BORDER,
                            y*CELL_SIZE + CELL_BORDER,
                            CELL_SIZE-2*CELL_BORDER, CELL_SIZE-2*CELL_BORDER);
