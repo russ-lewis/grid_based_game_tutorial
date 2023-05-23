@@ -4,7 +4,7 @@ const CELL_BORDER =  2;    // working size is SIZE-2*BORDER
 
 
 class Map {
-  constructor(bg,fg) {
+  constructor(bg,fg, status_pane) {
     const SIZE = 100;
 
     this.scroll_x = 8;
@@ -43,6 +43,9 @@ class Map {
     this.fg_ctx = fg.getContext("2d");
 
 
+    this.status_pane = status_pane;
+
+
     /* the script in index.html manages the size of the main canvas; it will
      * auto-scale the foreground and background canvases at the same time.
      * So we only need to monitor one of them.
@@ -70,6 +73,10 @@ class Map {
 
     /* mouse clicks */
     fg.addEventListener("click", this.click_handler.bind(this));
+
+
+    /* mouse moves; update the status box */
+    fg.addEventListener("mousemove", this.mouseMove_handler.bind(this)); 
   }
 
 
@@ -85,6 +92,10 @@ class Map {
     /* before we *use* the scroll state, update it if the window's in motion */
     this.scroll_x += this.vel.x;
     this.scroll_y += this.vel.y;
+
+    /* do we need to update the status pane, maybe? */
+    if (this.vel.x != 0 || this.vel.y != 0)
+      this.update_status_pane();
 
     const lft_raw = this.scroll_x - wid_cells/2;
     const rgt_raw = this.scroll_x + wid_cells/2;
@@ -218,6 +229,38 @@ console.log(this.grid.length, this.grid[0].length);
 
     this.grid[indx_X][indx_Y] = this.activeColor;
     requestAnimationFrame(this.draw_bg.bind(this));
+  }
+
+
+  mouseMove_handler({offsetX,offsetY}) {
+    /* we need to update the status page when the mouse moves, OR the page
+     * moves underneath it.  So we save the most recent mouse position, from
+     * this mouseMove event, into a variable that will still be available
+     * later, if the map moves underneath it.  (A quick Google search didn't
+     * find a more direct "get cur mouse position" API.)  So we will *update*
+     * the current position, and then call the update-status function; in the
+     * map scrolling case, we will not change the current position, but will
+     * call status-update.
+     */
+    this.cur_mouse_pos = {x:offsetX, y:offsetY};
+    this.update_status_pane();
+  }
+  update_status_pane() {
+    const transform_matrix = this.bg_ctx.getTransform();
+    const translate_X = transform_matrix.m41;
+    const translate_Y = transform_matrix.m42;
+
+    const indx_X = Math.floor((this.cur_mouse_pos.x - translate_X) / CELL_SIZE);
+    const indx_Y = Math.floor((this.cur_mouse_pos.y - translate_Y) / CELL_SIZE);
+
+    if (indx_X < 0 || indx_X >= this.grid   .length ||
+        indx_Y < 0 || indx_Y >= this.grid[0].length)
+    {
+      return;
+    }
+
+    this.status_pane.innerHTML = `(${indx_X},${indx_Y})\n<br>` +
+                                 `grid: ${this.grid[indx_X][indx_Y]}`;
   }
 }
 

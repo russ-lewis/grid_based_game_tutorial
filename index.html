@@ -1,3 +1,5 @@
+<!-- I tried to add the DOCTYPE at the top here, to "turn off quirks mode" (https://developer.mozilla.org/en-US/docs/Web/HTML/Quirks_Mode_and_Standards_Mode) but it immediately broke my layout.  I guess that I have a lot to learn about HTML and CSS.  Feel free to fix this as soon as you wish, whoever is reading this.  - Russ, 22 May 2023 -->
+
 <html>
   <head>
     <link rel="stylesheet" href="style.css">
@@ -20,12 +22,17 @@
                        backgroundColor:transparent"></canvas>
 
 <div id=menu style="position:absolute;
-                    left:408; top:32; width:150; height:416;
+                    left:408; top:32; width:150; height:250;
                     background:white">
     <button onclick="map.activeColor='green' ">green </button>
     <button onclick="map.activeColor='red'   ">red   </button>
     <button onclick="map.activeColor='yellow'">yellow</button>
     <button onclick="map.activeColor='purple'">purple</button>
+  </div>
+
+<div id=status style="position:absolute;
+                      left:408; bottom:32; width:150; height:134;
+                      background:white">
   </div>
 
 </body>
@@ -38,29 +45,37 @@
 <script>
   const MENU_WIDTH = 150;
 
-  const bg   = document.getElementById("bg");
-  const fg   = document.getElementById("fg");
-  const menu = document.getElementById("menu");
+  const bg     = document.getElementById("bg");
+  const fg     = document.getElementById("fg");
+  const menu   = document.getElementById("menu");
+  const status = document.getElementById("status");
 
-  const map = new Map(bg,fg);
+  const map = new Map(bg,fg, status);
 
   new ResizeObserver(windowSizeChanged).observe(document.body);
   function windowSizeChanged(event) {
     const {width,height} = event[0].contentRect;
 
-    menu.style.left = width-32-MENU_WIDTH;
+    menu  .style.left =
+    status.style.left = width-32-MENU_WIDTH;
 
     bg      .width  =
     fg      .width  =
     bg.style.width  =
     fg.style.width  = width-32-MENU_WIDTH-32-32;
 
+    const     fg_height = height-32-32;
+    const   menu_height = fg_height*0.60;
+    const status_height = fg_height - menu_height - 32;
+
     bg        .height =
     fg        .height =
     menu      .height =
     bg  .style.height =
-    fg  .style.height =
-    menu.style.height = height-32-32;
+    fg  .style.height = fg_height;
+
+    menu  .style.height =   menu_height;
+    status.style.height = status_height;
   };
 </script>
 
