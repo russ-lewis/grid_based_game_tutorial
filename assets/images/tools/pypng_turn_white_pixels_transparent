@@ -1,13 +1,19 @@
 #! /usr/bin/python3
 
 import png
+import sys
+
+
+assert(len(sys.argv) == 3)
+infile_name  = sys.argv[1]
+outfile_name = sys.argv[2]
 
 
 
 # this reads the entire image file, so that we can get its basic properties.
 # use then to sanity-check our assumptions
 
-(wid,hei, raw_rows, info) = png.Reader("ugly_house.png").asRGBA()
+(wid,hei, raw_rows, info) = png.Reader(infile_name).asRGBA()
 assert info["bitdepth"] <= 8
 
 
@@ -70,7 +76,7 @@ converted_int_array_rows = [sum(row, []) for row in pix_converted]
 
 
 # write out the modified pixels to a new file
-f = open("ugly_house-transparent.png", "wb")
+f = open(outfile_name, "wb")
 w = png.Writer(wid,hei, greyscale=False, alpha=True)
 w.write(f, converted_int_array_rows)
 f.close()
