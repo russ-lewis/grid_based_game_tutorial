@@ -20,6 +20,15 @@ class Map {
     this.grid[1][5] = "green";
 
 
+    /* we will add objects to this array as new things are created.  Most
+     * of the foreground objects don't move (buildings, icons for things on the
+     * ground, etc.).  But some, like the player (and soon: mobs) will move on
+     * their own accord, and thus we'll have to redraw the foreground from time
+     * to time.  The background, on the other hand, should change very rarely.
+     */
+    this.fg_objs = [];
+
+
     // the user can change this at any time.  It is the color that we will set
     // the next time that the user clicks anywhere.
     this.activeColor = "blue";
@@ -43,7 +52,8 @@ class Map {
     this.fg_ctx = fg.getContext("2d");
 
 
-    this.status_pane = status_pane;
+    this.     status_pane = status_pane;
+    this.last_status_pane = {x:-1, y:-1};
 
 
     /* the script in index.html manages the size of the main canvas; it will
@@ -58,6 +68,15 @@ class Map {
      */
 
 
+    /* load the image files.  Note that these cannot be reliably used until
+     * onload fires.
+     */
+    this.ugly_house = new Image();
+    this.ugly_house.src = "assets/images/ugly_house-transparent.png";
+    this.stickman   = new Image();
+    this.stickman  .src = "assets/images/stickman-transparent.png";
+
+
     /* we use the keyboard to scroll around on the map.  keyUp and keyDown
      * events update the 'this.vel' object, which is used below (in drawSizeRefresh())
      * to adjust the scroll position slowly.
@@ -66,7 +85,7 @@ class Map {
      *       work if I add a listener to the foreground context.  Compare to
      *       click event - I'm confused.
      */
-    this.keyUp_handler();
+    this.vel = {x:0, y:0};
     document.addEventListener("keydown", this.keyDown_handler.bind(this));
     document.addEventListener("keyup",   this.keyUp_handler  .bind(this));
 
@@ -103,7 +122,6 @@ class Map {
     const bot_raw = this.scroll_y + hei_cells/2;
 
     /* round the values to useful array indices.  But also bound them */
-console.log(this.grid.length, this.grid[0].length);
     var lft = Math.max(Math.floor(lft_raw), 0);
     var top = Math.max(Math.floor(top_raw), 0);
     var rgt = Math.min(Math. ceil(rgt_raw), this.grid   .length-1);
@@ -189,6 +207,13 @@ console.log(this.grid.length, this.grid[0].length);
 
 
   draw_fg() {
+    this.fg_objs.forEach(elem => elem.draw(this.fg_ctx));
+
+    this.fg_ctx.strokeStyle = "blue";
+    this.fg_ctx.lineWidth = 2*CELL_BORDER;
+    this.fg_ctx.beginPath();
+    this.fg_ctx.rect(8*CELL_SIZE,8*CELL_SIZE, CELL_SIZE,CELL_SIZE);
+    this.fg_ctx.stroke();
   }
 
 
@@ -196,19 +221,22 @@ console.log(this.grid.length, this.grid[0].length);
     const SPEED = .25;
 
     if (key == "ArrowLeft")
-      this.vel = {x:-SPEED, y:0};
+      this.vel.x = -SPEED;
     if (key == "ArrowRight")
-      this.vel = {x: SPEED, y:0};
+      this.vel.x =  SPEED;
     if (key == "ArrowUp")
-      this.vel = {x:0,      y:-SPEED};
+      this.vel.y = -SPEED;
     if (key == "ArrowDown")
-      this.vel = {x:0,      y: SPEED};
+      this.vel.y =  SPEED;
 
     if (this.vel.x != 0 || this.vel.y != 0)
       requestAnimationFrame(this.drawSizeRefresh.bind(this));
   }
-  keyUp_handler() {
-    this.vel = {x:0, y:0};
+  keyUp_handler({key}) {
+    if (key == "ArrowLeft" || key == "ArrowRight")
+      this.vel.x = 0;
+    if (key == "ArrowUp" || key == "ArrowDown")
+      this.vel.y = 0;
   }
 
 
@@ -259,9 +287,44 @@ console.log(this.grid.length, this.grid[0].length);
       return;
     }
 
-    this.status_pane.innerHTML = `(${indx_X},${indx_Y})\n<br>` +
-                                 `grid: ${this.grid[indx_X][indx_Y]}`;
+    /* we don't want to update the status pane *all* the time, so we keep track
+     * of the last x/y index that we wrote.  If this one is the same, then
+     * we'll skip the update.
+     */
+    if (this.last_status_pane.x == indx_X && this.last_status_pane.y == indx_Y)
+      return;
+    this.last_status_pane = {x:indx_X, y:indx_Y};
+
+    this.status_pane.innerHTML = "<b>Tile:</b>\n<br>" +
+                                 `(${indx_X},${indx_Y})\n<br>` +
+                                 `grid: ${this.grid[indx_X][indx_Y]}\n<p>` +
+                                 "<b>Player Inventory:</b>";
+    this.fg_objs[0].inventory.forEach(function(elem) {
+      this.status_pane.innerHTML += `\n<br>${elem}`;
+    });
   }
 }
+
+
+
+class Player {
+  static stickman;     // initialized after the class body
+
+  constructor(map) {
+    this.map = map;    // important so that we can send redraw requests
+    this.x = 10;
+    this.y = 10;
+    this.inventory = ["wood:10"];
+  }
+
+
+  draw(fg_ctx) {
+    fg_ctx.drawImage(Player.stickman, this.x*CELL_SIZE + CELL_BORDER,
+                                      this.y*CELL_SIZE + CELL_BORDER);
+  }
+}
+
+Player.stickman     = new Image();
+Player.stickman.src = "assets/images/stickman-transparent.png";
 
 

@@ -28,6 +28,12 @@
     <button onclick="map.activeColor='red'   ">red   </button>
     <button onclick="map.activeColor='yellow'">yellow</button>
     <button onclick="map.activeColor='purple'">purple</button>
+
+    <p> <b>Commands:</b>
+    <br>arrow keys to move
+    <br>p - pick up
+    <br>d - drop
+    <br>ENTER - place buildable object
   </div>
 
 <div id=status style="position:absolute;
@@ -51,6 +57,9 @@
   const status = document.getElementById("status");
 
   const map = new Map(bg,fg, status);
+
+  const me = new Player(map);
+  map.fg_objs.push(me);
 
   new ResizeObserver(windowSizeChanged).observe(document.body);
   function windowSizeChanged(event) {
