@@ -31,7 +31,7 @@ class Map {
 
     // the user can change this at any time.  It is the color that we will set
     // the next time that the user clicks anywhere.
-    this.activeColor = "blue";
+    this.activeItem = null;
 
 
     // there are two canvases:
@@ -75,6 +75,8 @@ class Map {
     this.ugly_house.src = "assets/images/ugly_house-transparent.png";
     this.stickman   = new Image();
     this.stickman  .src = "assets/images/stickman-transparent.png";
+    this.woodcutter = new Image();
+    this.woodcutter.src = "assets/images/woodcutter.png";
 
 
     /* we use the keyboard to scroll around on the map.  keyUp and keyDown
@@ -171,9 +173,15 @@ class Map {
       }
       else
       {
-        this.bg_ctx.fillStyle = this.grid[x][y];
-        this.bg_ctx.fillRect(x*CELL_SIZE + CELL_BORDER, y*CELL_SIZE + CELL_BORDER,
-                             CELL_SIZE-2*CELL_BORDER, CELL_SIZE-2*CELL_BORDER);
+        if (this.grid[x][y] == "woodcutter") {
+          this.bg_ctx.drawImage(this.woodcutter, x*CELL_SIZE, y*CELL_SIZE);
+        }
+        else
+        {
+          this.bg_ctx.fillStyle = this.grid[x][y];
+          this.bg_ctx.fillRect(x*CELL_SIZE + CELL_BORDER, y*CELL_SIZE + CELL_BORDER,
+                               CELL_SIZE-2*CELL_BORDER, CELL_SIZE-2*CELL_BORDER);
+        }
       }
     }
 
@@ -255,8 +263,11 @@ class Map {
       return;
     }
 
-    this.grid[indx_X][indx_Y] = this.activeColor;
-    requestAnimationFrame(this.draw_bg.bind(this));
+    if (this.activeItem != null)
+    {
+      this.grid[indx_X][indx_Y] = this.activeItem;
+      requestAnimationFrame(this.draw_bg.bind(this));
+    }
   }
 
 
@@ -295,12 +306,13 @@ class Map {
       return;
     this.last_status_pane = {x:indx_X, y:indx_Y};
 
-    this.status_pane.innerHTML = "<b>Tile:</b>\n<br>" +
-                                 `(${indx_X},${indx_Y})\n<br>` +
-                                 `grid: ${this.grid[indx_X][indx_Y]}\n<p>` +
-                                 "<b>Player Inventory:</b>";
+    let status_pane = this.status_pane;
+    status_pane.innerHTML = "<b>Tile:</b>\n<br>" +
+                            `(${indx_X},${indx_Y})\n<br>` +
+                            `grid: ${this.grid[indx_X][indx_Y]}\n<p>` +
+                            "<b>Player Inventory:</b>";
     this.fg_objs[0].inventory.forEach(function(elem) {
-      this.status_pane.innerHTML += `\n<br>${elem}`;
+      status_pane.innerHTML += `\n<br>${elem}`;
     });
   }
 }
